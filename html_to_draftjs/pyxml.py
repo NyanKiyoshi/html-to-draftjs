@@ -33,8 +33,8 @@ class Tag(object):
     ):
         tag_name = tag_name.rstrip("\0")  # remove NUL
 
-        attributes = self.inner_html[opening_start_pos:opening_end_pos]
-        attributes = utils.parse_attributes(attributes)
+        attributes_start = opening_start_pos + len(tag_name) + 1
+        attributes_stop = opening_end_pos
 
         inner_html = None
         if has_inner:
@@ -43,16 +43,20 @@ class Tag(object):
             inner_stop = closing_tag_end_pos - len(tag_name) - len("</")
             inner_html = self.inner_html[inner_start:inner_stop]
             inner_html = inner_html.strip()
+        else:
+            attributes_stop -= 1  # remove `/` from <my-tag />
+
+        attributes = self.inner_html[attributes_start:attributes_stop].strip()
+        attributes = utils.parse_attributes(attributes)
 
         return Tag(name=tag_name, attributes=attributes, inner_html=inner_html)
 
     def next(self, start_pos):
         """
-        :rtype
-        :param pos: The starting position.
+        :param start_pos: The starting position.
 
         :return: The content retrieved, the text or the tag and the stop position.
-        :rtype: Tuple[str, Union[str, Tag], int]
+        :rtype: Tuple[Union[str, Tag], int]
         """
         text = ""
 
@@ -63,6 +67,10 @@ class Tag(object):
         for pos, char in enumerate(self.inner_html[pos:], pos):
             if char == XML_TAG_START:
                 if tag_opening_start_pos is None:
+                    # If we found text before the tag, stop
+                    if text:
+                        break
+
                     logger.debug("Entered Tag at %d", pos)
                     tag_opening_start_pos = pos
 
@@ -70,10 +78,11 @@ class Tag(object):
                 if char == XML_TAG_END:
                     logger.debug("Found possible end of tag at %d", pos)
 
+                    # If this is the tag opening being closed
                     if tag_opening_end_pos is None:
                         tag_opening_end_pos = pos
 
-                    _possible_tag_start = pos + 1 - len(tag_name)
+                    _possible_tag_start = pos - len(tag_name)
                     _possible_tag_stop = pos
 
                     possible_tag_name = self.inner_html[
@@ -89,10 +98,10 @@ class Tag(object):
                             closing_tag_end_pos=None,
                             has_inner=False,
                         )
-                        return text, tag, pos
+                        return tag, pos + 1
 
                     # Tag closing with inner HTML
-                    elif possible_tag_name == tag_name.rstrip("\0"):  # noqa
+                    elif possible_tag_name == "/%s" % tag_name.rstrip("\0"):  # noqa
                         tag = self._get_tag(
                             tag_name,
                             tag_opening_start_pos,
@@ -100,7 +109,10 @@ class Tag(object):
                             closing_tag_end_pos=pos,
                             has_inner=True,
                         )
-                        return text, tag, pos
+                        return tag, pos + 1
+
+                    if tag_name[-1:] != "\0":
+                        tag_name += "\0"
 
                 # if we didn't retrieve the tag name yet, add the character
                 # to the tag name
@@ -119,13 +131,22 @@ class Tag(object):
                 self.inner_html,
             )
 
-        return text, None, pos
+        # if we reached then end, the cursor must move out of range
+        if pos == len(self.inner_html) - 1:
+            pos += 1
+
+        return text, pos
 
     def __iter__(self):
         """
-        Yields the text and each children (of type Tag).
+        Yields the text and tag (of type Tag) within a tag.
 
         :rtype: Union[str, Tag]
         :raise: StopIteration
         """
-        raise StopIteration
+
+        pos = 0
+
+        while pos < len(self.inner_html):
+            node, pos = self.next(pos)
+            yield node, pos

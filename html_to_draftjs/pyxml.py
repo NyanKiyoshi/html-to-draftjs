@@ -33,8 +33,8 @@ class Tag(object):
     ):
         tag_name = tag_name.rstrip("\0")  # remove NUL
 
-        attributes = self.inner_html[opening_start_pos:opening_end_pos]
-        attributes = utils.parse_attributes(attributes)
+        attributes_start = opening_start_pos + len(tag_name) + 1
+        attributes_stop = opening_end_pos
 
         inner_html = None
         if has_inner:
@@ -43,13 +43,17 @@ class Tag(object):
             inner_stop = closing_tag_end_pos - len(tag_name) - len("</")
             inner_html = self.inner_html[inner_start:inner_stop]
             inner_html = inner_html.strip()
+        else:
+            attributes_stop -= 1  # remove `/` from <my-tag />
+
+        attributes = self.inner_html[attributes_start:attributes_stop].strip()
+        attributes = utils.parse_attributes(attributes)
 
         return Tag(name=tag_name, attributes=attributes, inner_html=inner_html)
 
     def next(self, start_pos):
         """
-        :rtype
-        :param pos: The starting position.
+        :param start_pos: The starting position.
 
         :return: The content retrieved, the text or the tag and the stop position.
         :rtype: Tuple[str, Union[str, Tag], int]

@@ -98,7 +98,7 @@ class Tag(object):
                             closing_tag_end_pos=None,
                             has_inner=False,
                         )
-                        return tag, pos
+                        return tag, pos + 1
 
                     # Tag closing with inner HTML
                     elif possible_tag_name == "/%s" % tag_name.rstrip("\0"):  # noqa
@@ -109,7 +109,7 @@ class Tag(object):
                             closing_tag_end_pos=pos,
                             has_inner=True,
                         )
-                        return tag, pos
+                        return tag, pos + 1
 
                     if tag_name[-1:] != "\0":
                         tag_name += "\0"
@@ -131,11 +131,15 @@ class Tag(object):
                 self.inner_html,
             )
 
+        # if we reached then end, the cursor must move out of range
+        if pos == len(self.inner_html) - 1:
+            pos += 1
+
         return text, pos
 
     def __iter__(self):
         """
-        Yields the text and each children (of type Tag).
+        Yields the text and tag (of type Tag) within a tag.
 
         :rtype: Union[str, Tag]
         :raise: StopIteration
@@ -144,6 +148,5 @@ class Tag(object):
         pos = 0
 
         while pos < len(self.inner_html):
-            pass
-
-        raise StopIteration
+            node, pos = self.next(pos)
+            yield node, pos

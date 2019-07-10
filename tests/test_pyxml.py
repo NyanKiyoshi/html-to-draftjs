@@ -11,7 +11,7 @@ def test_get_inner_text_without_tags():
     text, stopped_at = root.next(0)  # type: (str, int)
 
     # Check pos
-    assert stopped_at == len(html) - 1
+    assert stopped_at == len(html)
 
     # Check text
     assert text == html, "Should have found the text"
@@ -41,7 +41,7 @@ def test_get_nested():
     tag, stopped_at = root.next(0)  # type: (Tag, int)
 
     # Check pos
-    assert stopped_at == len(html) - 1
+    assert stopped_at == len(html)
 
     # Check tag
     assert isinstance(tag, Tag)
@@ -56,7 +56,7 @@ def test_name_collision():
     tag, stopped_at = root.next(0)  # type: (Tag, int)
 
     # Check pos
-    assert stopped_at == len(html) - 1
+    assert stopped_at == len(html)
 
     # Check tag
     assert isinstance(tag, Tag)
@@ -81,7 +81,7 @@ def test_get_tag_with_inner(mocked_attribute_parser):
     assert tag.attributes == {"href": "hello world"}
 
     # Check pos
-    assert stopped_at == len(html) - 1
+    assert stopped_at == len(html)
 
 
 @pytest.mark.parametrize("html", ("<img src='abc'/>", "<img src='abc' />"))
@@ -100,7 +100,7 @@ def test_get_tag_without_inner(mocked_attribute_parser, html):
     assert tag.attributes == {"src": "abc"}
 
     # Check pos
-    assert stopped_at == len(html) - 1
+    assert stopped_at == len(html)
 
 
 @pytest.mark.parametrize(
@@ -129,3 +129,41 @@ def test_parse_attributes_with_invalid_values(raw_input):
     with pytest.raises(InvalidValueError) as exc:
         print(parse_attributes(raw_input))
     assert exc.value.args == ("Invalid value for the attribute (href)",)
+
+
+def test_root_tag_iterator():
+    html = "<p>Hello to <strong><em>our</em>World <em>:)</em></strong></p>"
+    tag = Tag(name="body", attributes={}, inner_html=html)
+
+    nodes = list(tag)
+    assert len(nodes) == 1, nodes
+    assert nodes[0][0].name == "p"
+
+    nodes = list(nodes[0][0])
+    assert len(nodes) == 2, nodes
+
+    text, tag = nodes
+    assert text == ("Hello to ", 9)
+    assert tag[0].name == "strong"
+    assert tag[0].inner_html == "<em>our</em>World <em>:)</em>"
+    assert tag[1] == 55
+
+    nodes = list(tag[0])
+    assert len(nodes) == 3
+
+    tag1, text, tag2 = nodes
+    assert tag1[0].name == "em"
+    assert tag1[0].inner_html == "our"
+    assert tag1[1] == 12
+
+    assert text[0] == "World "
+    assert text[1] == 18
+
+    assert tag2[0].name == "em"
+    assert tag2[0].inner_html == ":)"
+    assert tag2[1] == 29
+
+    nodes = list(tag2[0])
+    assert len(nodes) == 1
+    assert nodes[0][0] == ":)"
+    assert nodes[0][1] == 2

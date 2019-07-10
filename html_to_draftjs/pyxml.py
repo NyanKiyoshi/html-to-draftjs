@@ -56,7 +56,7 @@ class Tag(object):
         :param start_pos: The starting position.
 
         :return: The content retrieved, the text or the tag and the stop position.
-        :rtype: Tuple[str, Union[str, Tag], int]
+        :rtype: Tuple[Union[str, Tag], int]
         """
         text = ""
 
@@ -67,6 +67,10 @@ class Tag(object):
         for pos, char in enumerate(self.inner_html[pos:], pos):
             if char == XML_TAG_START:
                 if tag_opening_start_pos is None:
+                    # If we found text before the tag, stop
+                    if text:
+                        break
+
                     logger.debug("Entered Tag at %d", pos)
                     tag_opening_start_pos = pos
 
@@ -74,6 +78,7 @@ class Tag(object):
                 if char == XML_TAG_END:
                     logger.debug("Found possible end of tag at %d", pos)
 
+                    # If this is the tag opening being closed
                     if tag_opening_end_pos is None:
                         tag_opening_end_pos = pos
 
@@ -93,7 +98,7 @@ class Tag(object):
                             closing_tag_end_pos=None,
                             has_inner=False,
                         )
-                        return text, tag, pos
+                        return tag, pos
 
                     # Tag closing with inner HTML
                     elif possible_tag_name == tag_name.rstrip("\0"):  # noqa
@@ -104,7 +109,10 @@ class Tag(object):
                             closing_tag_end_pos=pos,
                             has_inner=True,
                         )
-                        return text, tag, pos
+                        return tag, pos
+
+                    if tag_name[-1:] != "\0":
+                        tag_name += "\0"
 
                 # if we didn't retrieve the tag name yet, add the character
                 # to the tag name
@@ -123,7 +131,7 @@ class Tag(object):
                 self.inner_html,
             )
 
-        return text, None, pos
+        return text, pos
 
     def __iter__(self):
         """
@@ -132,4 +140,10 @@ class Tag(object):
         :rtype: Union[str, Tag]
         :raise: StopIteration
         """
+
+        pos = 0
+
+        while pos < len(self.inner_html):
+            pass
+
         raise StopIteration

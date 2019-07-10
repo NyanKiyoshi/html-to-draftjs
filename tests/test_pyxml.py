@@ -8,10 +8,7 @@ from html_to_draftjs.utils import InvalidValueError, parse_attributes
 def test_get_inner_text_without_tags():
     html = " Hi :) "
     root = Tag("root", html)
-    text, tag, stopped_at = root.next(0)  # type: (str, Tag, int)
-
-    # Check tag
-    assert tag is None, "Not tag should have been found"
+    text, stopped_at = root.next(0)  # type: (str, int)
 
     # Check pos
     assert stopped_at == len(html) - 1
@@ -20,11 +17,44 @@ def test_get_inner_text_without_tags():
     assert text == html, "Should have found the text"
 
 
+def test_get_inner_text_with_tags():
+    html = "Hello <strong>world</strong>"
+    root = Tag("root", html)
+    text, stopped_at = root.next(0)  # type: (str, int)
+
+    # Check pos
+    assert stopped_at == len("hello ")
+
+    # Check text
+    assert text == "Hello ", "Should have found the text"
+
+    tag, stopped_at = root.next(stopped_at)  # type: (Tag, int)
+    assert isinstance(tag, Tag)
+    assert tag.name == "strong"
+    assert tag.inner_html == "world"
+    assert tag.attributes == {}
+
+
+def test_get_nested():
+    html = "<p><strong>world</strong></p>"
+    root = Tag("root", html)
+    tag, stopped_at = root.next(0)  # type: (Tag, int)
+
+    # Check pos
+    assert stopped_at == len(html) - 1
+
+    # Check tag
+    assert isinstance(tag, Tag)
+    assert tag.name == "p"
+    assert tag.inner_html == "<strong>world</strong>"
+    assert tag.attributes == {}
+
+
 @mock.patch("html_to_draftjs.utils.parse_attributes", wraps=parse_attributes)
 def test_get_tag_with_inner(mocked_attribute_parser):
     html = "<a href='hello world'> Hi :) </a>"
     root = Tag("root", html)
-    text, tag, stopped_at = root.next(0)  # type: (str, Tag, int)
+    tag, stopped_at = root.next(0)  # type: (Tag, int)
 
     # Check tag
     assert tag is not None, "Should have returned a tag"
@@ -38,15 +68,12 @@ def test_get_tag_with_inner(mocked_attribute_parser):
     # Check pos
     assert stopped_at == len(html) - 1
 
-    # Check text
-    assert text == "", "Should not have found any text"
-
 
 @pytest.mark.parametrize("html", ("<img src='abc'/>", "<img src='abc' />"))
 @mock.patch("html_to_draftjs.utils.parse_attributes", wraps=parse_attributes)
 def test_get_tag_without_inner(mocked_attribute_parser, html):
     root = Tag("root", html)
-    text, tag, stopped_at = root.next(0)  # type: (str, Tag, int)
+    tag, stopped_at = root.next(0)  # type: (Tag, int)
 
     # Check tag
     assert tag is not None, "Should have returned a tag"
@@ -59,9 +86,6 @@ def test_get_tag_without_inner(mocked_attribute_parser, html):
 
     # Check pos
     assert stopped_at == len(html) - 1
-
-    # Check text
-    assert text == "", "Should not have found any text"
 
 
 @pytest.mark.parametrize(

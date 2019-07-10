@@ -50,6 +50,21 @@ def test_get_nested():
     assert tag.attributes == {}
 
 
+def test_name_collision():
+    html = "<p><stronp>world</stronp></p>"
+    root = Tag("root", html)
+    tag, stopped_at = root.next(0)  # type: (Tag, int)
+
+    # Check pos
+    assert stopped_at == len(html) - 1
+
+    # Check tag
+    assert isinstance(tag, Tag)
+    assert tag.name == "p"
+    assert tag.inner_html == "<stronp>world</stronp>"
+    assert tag.attributes == {}
+
+
 @mock.patch("html_to_draftjs.utils.parse_attributes", wraps=parse_attributes)
 def test_get_tag_with_inner(mocked_attribute_parser):
     html = "<a href='hello world'> Hi :) </a>"

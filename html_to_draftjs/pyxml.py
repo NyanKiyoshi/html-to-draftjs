@@ -82,7 +82,7 @@ class Tag(object):
                     if tag_opening_end_pos is None:
                         tag_opening_end_pos = pos
 
-                    _possible_tag_start = pos + 1 - len(tag_name)
+                    _possible_tag_start = pos - len(tag_name)
                     _possible_tag_stop = pos
 
                     possible_tag_name = self.inner_html[
@@ -101,7 +101,7 @@ class Tag(object):
                         return tag, pos
 
                     # Tag closing with inner HTML
-                    elif possible_tag_name == tag_name.rstrip("\0"):  # noqa
+                    elif possible_tag_name == "/%s" % tag_name.rstrip("\0"):  # noqa
                         tag = self._get_tag(
                             tag_name,
                             tag_opening_start_pos,

@@ -1,0 +1,10 @@
+.*/
+*.pyc
+*.egg-info/
+*wheel*
+.pytest*
+.coverage
+*cov/
+dist/
+docs/_build/
+.DS*

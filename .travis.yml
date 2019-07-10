@@ -1,0 +1,54 @@
+sudo: false
+language: python
+
+git:
+  depth: false
+
+python:
+  - "2.7"
+  - "3.4"
+  - "3.5"
+
+cache:
+  pip: true
+  directories:
+    - node_modules
+      - $HOME/.cache/pip
+      - $HOME/.cache/pre-commit
+
+matrix:
+  fast_finish: true
+  include:
+    - dist: xenial
+      python: "3.5"
+
+    - dist: xenial
+      python: "3.6"
+
+    - dist: xenial
+      python: "3.7"
+
+    - dist: xenial
+      python: "3.6"
+      env:
+        - TEST_PRECOMMIT="true"
+
+install:
+  - pip install pytest-xdist tox-travis codecov coverage $django
+  - >
+    if [ -n "$TEST_PRECOMMIT" ]; then
+      pip install pre-commit
+    else
+      ./setup.py develop \
+      && pip install -e .[dev]
+    fi
+
+script:
+  - >
+    if [ -n "$TEST_PRECOMMIT" ]; then
+      pre-commit run --all-files
+    else
+      coverage run --source pytest_django_queries -m pytest
+    fi
+
+after_success: codecov

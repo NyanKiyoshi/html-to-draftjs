@@ -2,6 +2,8 @@ import pytest
 
 from html_to_draftjs import html_to_draftjs
 
+# FIXME: test typed blocks as well
+
 
 def test_convert_block():
     """Tests converting inline HTML contained into a block."""
@@ -34,20 +36,168 @@ def test_convert_inline():
         "<p>A paragraph here</p>"
     )
     json = html_to_draftjs(html)
-    assert json == {}
+    assert json == {
+        "entityMap": {},
+        "blocks": [
+            {
+                "key": "",
+                "text": "My content has some content",
+                "type": "unstyled",
+                "depth": 0,
+                "inlineStyleRanges": [
+                    {"offset": 15, "length": 12, "style": "BOLD"},
+                    {"offset": 20, "length": 7, "style": "ITALIC"},
+                ],
+                "entityRanges": [],
+                "data": {},
+            },
+            {
+                "key": "",
+                "text": "A paragraph here",
+                "type": "unstyled",
+                "depth": 0,
+                "inlineStyleRanges": [],
+                "entityRanges": [],
+                "data": {},
+            },
+        ],
+    }
 
 
 @pytest.mark.parametrize(
     "html, expected",
     (
-        ("<img src='picture.png' />", {}),
-        ("<p><img src='picture.png' /><img src='picture2.png' /></p>", {}),
-        ("<p><img src='picture.png'>Invalid</img></p>", {}),
-        ("<p><img src='picture.png' alt='my picture' /></p>", {}),
+        (
+            "<img src='picture.png' />",
+            {
+                "entityMap": {
+                    "0": {
+                        "type": "IMAGE",
+                        "mutability": "MUTABLE",
+                        "data": {
+                            "alt": "",
+                            "src": "picture.png",
+                            "height": "initial",
+                            "width": "initial",
+                        },
+                    }
+                },
+                "blocks": [
+                    {
+                        "key": "",
+                        "text": "",
+                        "type": "unstyled",
+                        "depth": 0,
+                        "inlineStyleRanges": [],
+                        "entityRanges": [{"offset": 0, "length": 0, "key": 0}],
+                        "data": {},
+                    }
+                ],
+            },
+        ),
+        (
+            "<p><img src='picture.png' /><img src='picture2.png' /></p>",
+            {
+                "entityMap": {
+                    "0": {
+                        "type": "IMAGE",
+                        "mutability": "MUTABLE",
+                        "data": {
+                            "alt": "",
+                            "src": "picture.png",
+                            "height": "initial",
+                            "width": "initial",
+                        },
+                    },
+                    "1": {
+                        "type": "IMAGE",
+                        "mutability": "MUTABLE",
+                        "data": {
+                            "alt": "",
+                            "src": "picture2.png",
+                            "height": "initial",
+                            "width": "initial",
+                        },
+                    },
+                },
+                "blocks": [
+                    {
+                        "key": "",
+                        "text": "",
+                        "type": "unstyled",
+                        "depth": 0,
+                        "inlineStyleRanges": [],
+                        "entityRanges": [
+                            {"offset": 0, "length": 0, "key": 0},
+                            {"offset": 0, "length": 0, "key": 1},
+                        ],
+                        "data": {},
+                    }
+                ],
+            },
+        ),
+        (
+            "<p><img src='picture.png'>Invalid</img></p>",
+            {
+                "entityMap": {
+                    "0": {
+                        "type": "IMAGE",
+                        "mutability": "MUTABLE",
+                        "data": {
+                            "alt": "",
+                            "src": "picture.png",
+                            "height": "initial",
+                            "width": "initial",
+                        },
+                    }
+                },
+                "blocks": [
+                    {
+                        "key": "",
+                        "text": "Invalid",
+                        "type": "unstyled",
+                        "depth": 0,
+                        "inlineStyleRanges": [],
+                        "entityRanges": [{"offset": 0, "length": 0, "key": 0}],
+                        "data": {},
+                    }
+                ],
+            },
+        ),
+        (
+            "<p><img src='picture.png' alt='my picture' height='255' /></p>",
+            {
+                "entityMap": {
+                    "0": {
+                        "type": "IMAGE",
+                        "mutability": "MUTABLE",
+                        "data": {
+                            "alt": "my picture",
+                            "src": "picture.png",
+                            "height": "255px",
+                            "width": "initial",
+                        },
+                    }
+                },
+                "blocks": [
+                    {
+                        "key": "",
+                        "text": "",
+                        "type": "unstyled",
+                        "depth": 0,
+                        "inlineStyleRanges": [],
+                        "entityRanges": [{"offset": 0, "length": 0, "key": 0}],
+                        "data": {},
+                    }
+                ],
+            },
+        ),
     ),
 )
 def test_convert_image(html, expected):
     """Tests converting a image tag into JSON."""
+    json = html_to_draftjs(html, strict=True)
+    assert json == expected
 
 
 @pytest.mark.parametrize(

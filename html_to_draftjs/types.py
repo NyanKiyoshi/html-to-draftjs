@@ -1,4 +1,12 @@
 from collections import namedtuple
+from typing import Optional
+
+
+def str_value_to_dimension(value: Optional[str]):
+    if isinstance(value, str) and value.isnumeric():
+        return value + "px"
+    return value
+
 
 ENTITY_TYPE = namedtuple("ENTITY_TYPE", ["type", "attributes"])
 
@@ -35,7 +43,15 @@ TYPED_TAGS = {
 # All the supported mutable entities
 ENTITIES = {
     # Links
-    "a": ENTITY_TYPE(type="LINK", attributes={"href"}),
+    "a": ENTITY_TYPE(type="LINK", attributes={"href": {}}),
     # Images
-    "img": ENTITY_TYPE(type="IMAGE", attributes={"src", "alt", "height", "width"}),
+    "img": ENTITY_TYPE(
+        type="IMAGE",
+        attributes={
+            "src": {},
+            "alt": {"default": ""},
+            "height": {"default": "initial", "convert": str_value_to_dimension},
+            "width": {"default": "initial", "convert": str_value_to_dimension},
+        },
+    ),
 }

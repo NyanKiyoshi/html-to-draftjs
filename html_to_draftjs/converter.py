@@ -95,9 +95,9 @@ class SoupConverter(object):
         :return: The key of the entity,
         :rtype: str
         """
-        key = str(self._entity_cursor)
+        key = self._entity_cursor
         self._entity_cursor += 1
-        self._entities[key] = entity
+        self._entities[str(key)] = entity
         return key
 
     def append_block(self, block_data):
@@ -177,7 +177,7 @@ class SoupConverter(object):
         # Finalize the block data
         block["key"] = self.key_generator(block)
 
-    def handle_inline(self, node: Tag, current_block, start_pos, length):
+    def handle_inline(self, node: Tag, block, start_pos, length):
         """
         :param current_block: The block being processed.
         :type current_block: dict
@@ -188,7 +188,7 @@ class SoupConverter(object):
             self.dispatch_error("Inline styles cannot have empty inner", node)
             return
 
-        styles = current_block["inlineStyleRanges"]
+        styles = block["inlineStyleRanges"]
         styles.append(
             {
                 "offset": start_pos,
@@ -206,7 +206,7 @@ class SoupConverter(object):
         :return:
         """
 
-    def build_entity(self, node: Tag, current_block, start_pos, length):
+    def build_entity(self, node: Tag, block, start_pos, length):
         """
         :param current_block: The block being processed.
         :type current_block: dict
@@ -214,9 +214,31 @@ class SoupConverter(object):
         :return:
         """
 
-        entity = {}
+        entity_definitions = self.entities_types[node.name.lower()]
+        attributes = {}
+
+        for attr, defs in entity_definitions.attributes.items():
+            default = defs.get("default")
+
+            # Retrieve the attribute value or set it to the default value
+            # if there is a default defined (careful! The default value can be null)
+            if attr in node.attrs or "default" in defs:
+                value = node.attrs.get(attr, default)
+
+                if "convert" in defs:
+                    value = defs["convert"](value)
+
+                attributes[attr] = value
+
+        entity = {
+            "type": entity_definitions.type,
+            "mutability": "MUTABLE",
+            "data": attributes,
+        }
+
         key = self.append_entity(entity)
-        assert key
+        block_entities = block["entityRanges"]
+        block_entities.append({"offset": start_pos, "length": length, "key": key})
 
     def dispatch_tag(self):
         pass
@@ -246,7 +268,11 @@ class SoupConverter(object):
         self.warn("{}: {}".format(msg, repr(args)))
 
     def clean_block(self):
-        blocks_to_remove = [block for block in self._blocks if block["text"] == ""]
+        blocks_to_remove = [
+            block
+            for block in self._blocks
+            if not block["entityRanges"] and not block["text"]
+        ]
 
         for block in blocks_to_remove:
             self._blocks.remove(block)
@@ -255,10 +281,12 @@ class SoupConverter(object):
             block["inlineStyleRanges"] = list(
                 sorted(block["inlineStyleRanges"], key=lambda o: o["offset"])
             )
+            block["entityRanges"] = list(
+                sorted(block["entityRanges"], key=lambda o: o["key"])
+            )
 
     def to_dict(self):
         self.clean_block()
-
         return {"entityMap": self._entities, "blocks": self._blocks}
 
     def convert(self, soup: BeautifulSoup):

@@ -1,20 +1,40 @@
 import pytest
 
-
-def test_convert_inline():
-    """Tests converting *invalid* HTML structure, where inline tags are not
-    in a block tag."""
-    html = (
-        "My content has <strong>some <em>content</em></strong>"
-        "<p>A paragraph here</p>"
-    )
-    assert html
+from html_to_draftjs import html_to_draftjs
 
 
 def test_convert_block():
     """Tests converting inline HTML contained into a block."""
     html = "<p>My content has <strong>some <em>content</em></strong></p>"
-    assert html
+    json = html_to_draftjs(html, strict=True)
+    assert json == {
+        "entityMap": {},
+        "blocks": [
+            {
+                "key": "",
+                "text": "My content has some content",
+                "type": "unstyled",
+                "depth": 0,
+                "inlineStyleRanges": [
+                    {"offset": 15, "length": 12, "style": "BOLD"},
+                    {"offset": 20, "length": 7, "style": "ITALIC"},
+                ],
+                "entityRanges": [],
+                "data": {},
+            }
+        ],
+    }
+
+
+def test_convert_inline():
+    """Tests converting ** HTML structure, where inline tags are not
+    in a block tag."""
+    html = (
+        "My content has <strong>some <em>content</em></strong>"
+        "<p>A paragraph here</p>"
+    )
+    json = html_to_draftjs(html)
+    assert json == {}
 
 
 @pytest.mark.parametrize(

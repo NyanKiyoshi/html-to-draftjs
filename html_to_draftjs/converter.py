@@ -1,13 +1,10 @@
 import warnings
+from typing import Dict, Optional  # noqa: F401
+
+from bs4 import BeautifulSoup
+from bs4.element import Tag
 
 from html_to_draftjs import types
-from html_to_draftjs.pyxml import Tag
-
-try:
-    from typing import Any, Union, Callable, Dict, Tuple  # noqa
-except ImportError:
-    """Un-supported import for Python < 3.6"""
-
 
 __all__ = ["SoupConverter"]
 
@@ -66,10 +63,15 @@ class SoupConverter(object):
         self._all_inline_tags.update(self.inlines_types.keys())
         self._all_inline_tags.update(self.entities_types.keys())
 
-        # The generated entity map for DraftJS
-        self._entity_cursor = None  # The cursor for types
-        self._entities = None  # the defined types (images, links, etc.)
-        self._blocks = None  # the defined blocks (p, div, etc.)
+        # -- The generated entity map for DraftJS
+        # The cursor for types
+        self._entity_cursor = None  # type: Optional[int]
+
+        # the defined types (images, links, etc.)
+        self._entities = None  # type: Optional[dict]
+
+        # the defined blocks (p, div, etc.)
+        self._blocks = None  # type: Optional[list]
 
     @staticmethod
     def create_default_block():
@@ -105,7 +107,55 @@ class SoupConverter(object):
         """Initialize the session to zero."""
         self._entity_cursor = 0
         self._entities = {}
-        self._blocks = {}
+        self._blocks = []
+
+    def _process_element_for_block(
+        self, block, element: Tag, parent_element: Optional[Tag]
+    ):
+        for node in element.contents:
+            # If the node is a string, append it to the text
+            if isinstance(node, str):
+                block["text"] += node
+                continue
+
+            tag_name = node.name.lower()
+
+            # If the node is a block, build a block
+            if tag_name in self.blocks_types or tag_name in self.typed_blocks_types:
+                if (
+                    parent_element is not None
+                    and parent_element.name in self._all_inline_tags
+                ):
+                    self.dispatch_error(
+                        "Doesn't support blocks within a inline tag (invalid)",
+                        tag_name,
+                        node,
+                        parent_element,
+                    )
+                    continue
+
+                # Build the block
+                self.build_block(node)
+
+                # Stop there, we don't need to post-process blocks
+                continue
+
+            # Check if the node is a inline tag, then
+            if tag_name not in self._all_inline_tags:
+                self.dispatch_error("Unsupported tag in block", tag_name, node)
+                continue
+
+            # Process the inline tags
+            start_pos = len(block["text"])
+            self._process_element_for_block(block, node, element)
+            end_pos = len(block["text"])
+
+            length = end_pos - start_pos
+
+            if tag_name in self.entities_types:
+                self.build_entity(node, block, start_pos, length)
+            else:
+                self.handle_inline(node, block, start_pos, length)
 
     def build_block(self, element):
         """
@@ -115,19 +165,40 @@ class SoupConverter(object):
         :return:
         """
 
-        # Create an empty block, ready to get populated
+        # FIXME: handle typed blocks here
+
+        # Create and store an empty block, ready to get populated
         block = self.create_default_block()
-
-        # Convert the HTML content to DraftJS
-        "..."
-
-        # Finalize the data
-        block["key"] = self.key_generator(block)
-
-        # Store the generated block
         self.append_block(block)
 
-    def handle_inline(self, current_block):
+        # Convert the HTML content to DraftJS
+        self._process_element_for_block(block, element, None)
+
+        # Finalize the block data
+        block["key"] = self.key_generator(block)
+
+    def handle_inline(self, node: Tag, current_block, start_pos, length):
+        """
+        :param current_block: The block being processed.
+        :type current_block: dict
+
+        :return:
+        """
+        if length == 0:
+            self.dispatch_error("Inline styles cannot have empty inner", node)
+            return
+
+        styles = current_block["inlineStyleRanges"]
+        styles.append(
+            {
+                "offset": start_pos,
+                "length": length,
+                "style": self.inlines_types[node.name.lower()],
+            }
+        )
+
+    @staticmethod
+    def build_typed_block(current_block):
         """
         :param current_block: The block being processed.
         :type current_block: dict
@@ -135,15 +206,7 @@ class SoupConverter(object):
         :return:
         """
 
-    def build_typed_block(self, current_block):
-        """
-        :param current_block: The block being processed.
-        :type current_block: dict
-
-        :return:
-        """
-
-    def build_entity(self, current_block):
+    def build_entity(self, node: Tag, current_block, start_pos, length):
         """
         :param current_block: The block being processed.
         :type current_block: dict
@@ -174,7 +237,7 @@ class SoupConverter(object):
         :type msg: str
 
         :param args:
-        :type args: tuple
+        :type args: Any
 
         :return:
         """
@@ -182,7 +245,23 @@ class SoupConverter(object):
             raise ValueError(msg, *args)
         self.warn("{}: {}".format(msg, repr(args)))
 
-    def convert(self, soup):
+    def clean_block(self):
+        blocks_to_remove = [block for block in self._blocks if block["text"] == ""]
+
+        for block in blocks_to_remove:
+            self._blocks.remove(block)
+
+        for block in self._blocks:
+            block["inlineStyleRanges"] = list(
+                sorted(block["inlineStyleRanges"], key=lambda o: o["offset"])
+            )
+
+    def to_dict(self):
+        self.clean_block()
+
+        return {"entityMap": self._entities, "blocks": self._blocks}
+
+    def convert(self, soup: BeautifulSoup):
         """
         Converts the passed bs4 soup into a standard Draft JS JSON format
         as a python dictionary.
@@ -191,22 +270,16 @@ class SoupConverter(object):
         :type soup: BeautifulSoup
 
         :return:
-        :rtype: dict
+        :rtype: SoupConverter
         """
 
         # Populate the session
         self.initialize_session_converter()
 
-        while soup.tagStack:
-            element = soup.popTag()  # type: Tag
+        body = soup.select_one("body")  # type: Optional[Tag]
 
-            # Check if the current root tag is inline (invalid HTML structure).
-            # If it is inline, we have to give it a block parent to properly handle it.
-            if element.name in self._all_inline_tags:
-                # Inject a block parent to the invalid inline tag
-                parent = Tag(name=self.default_block_tag_name)
-                parent.append(element)
+        if not Tag:
+            return self
 
-                element = parent
-
-            self.build_block(element)
+        self.build_block(body)
+        return self

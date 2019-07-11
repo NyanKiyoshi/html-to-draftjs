@@ -124,7 +124,7 @@ class SoupConverter(object):
             if tag_name in self.blocks_types or tag_name in self.typed_blocks_types:
                 if (
                     parent_element is not None
-                    and parent_element.name in self._all_inline_tags
+                    and parent_element.name.lower() in self._all_inline_tags
                 ):
                     self.dispatch_error(
                         "Doesn't support blocks within a inline tag (invalid)",
@@ -141,7 +141,7 @@ class SoupConverter(object):
                 continue
 
             # Check if the node is a inline tag, then
-            if tag_name not in self._all_inline_tags:
+            if tag_name not in self._all_inline_tags and tag_name:
                 self.dispatch_error("Unsupported tag in block", tag_name, node)
                 continue
 
@@ -165,11 +165,13 @@ class SoupConverter(object):
         :return:
         """
 
-        # FIXME: handle typed blocks here
-
         # Create and store an empty block, ready to get populated
         block = self.create_default_block()
         self.append_block(block)
+
+        element_name = element.name.lower()
+        if element_name in self.typed_blocks_types:
+            block["type"] = self.typed_blocks_types[element_name]
 
         # Convert the HTML content to DraftJS
         self._process_element_for_block(block, element, None)
@@ -196,15 +198,6 @@ class SoupConverter(object):
                 "style": self.inlines_types[node.name.lower()],
             }
         )
-
-    @staticmethod
-    def build_typed_block(current_block):
-        """
-        :param current_block: The block being processed.
-        :type current_block: dict
-
-        :return:
-        """
 
     def build_entity(self, node: Tag, block, start_pos, length):
         """
@@ -239,9 +232,6 @@ class SoupConverter(object):
         key = self.append_entity(entity)
         block_entities = block["entityRanges"]
         block_entities.append({"offset": start_pos, "length": length, "key": key})
-
-    def dispatch_tag(self):
-        pass
 
     @staticmethod
     def warn(msg):

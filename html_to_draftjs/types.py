@@ -10,7 +10,6 @@ def str_value_to_dimension(value: Optional[str]):
 
 ENTITY_TYPE = namedtuple("ENTITY_TYPE", ["type", "attributes"])
 
-
 # All the supported inline styling tag
 INLINE_TAGS = {
     # Bold style
@@ -22,7 +21,7 @@ INLINE_TAGS = {
 }
 
 # All the supported block tag
-BLOCK_TAGS = ("p", "div")
+BLOCK_TAGS = ("p", "div", "ul")
 
 # All the supported block tag having a speacial type/feature
 TYPED_TAGS = {

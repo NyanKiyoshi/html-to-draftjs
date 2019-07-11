@@ -201,15 +201,86 @@ def test_convert_image(html, expected):
 
 
 @pytest.mark.parametrize(
-    "html, expected",
+    "html",
     (
-        ("hello <a href='#my-link'>worl<strong>d</strong></a>", {}),
-        ("<p>hello <a href='#my-link'>worl<strong>d</strong></a></p>", {}),
+        "hello <a href='#my-link'>worl<strong>d</strong></a>",
+        "<p>hello <a href='#my-link'>worl<strong>d</strong></a></p>",
     ),
 )
-def test_convert_link(html, expected):
+def test_convert_link(html):
     """Tests converting HTML links into JSON."""
-    pass
+    json = html_to_draftjs(html, strict=True)
+    assert json == {
+        "entityMap": {
+            "0": {"type": "LINK", "mutability": "MUTABLE", "data": {"href": "#my-link"}}
+        },
+        "blocks": [
+            {
+                "key": "",
+                "text": "hello world",
+                "type": "unstyled",
+                "depth": 0,
+                "inlineStyleRanges": [{"offset": 10, "length": 1, "style": "BOLD"}],
+                "entityRanges": [{"offset": 6, "length": 5, "key": 0}],
+                "data": {},
+            }
+        ],
+    }
+
+
+@pytest.mark.parametrize(
+    "html, expected_type",
+    (
+        ("<h1>My content</h1>", "header-one"),
+        ("<blockquote>My content</blockquote>", "blockquote"),
+    ),
+)
+def test_convert_typed_block(html, expected_type):
+    """Tests converting HTML links into JSON."""
+    json = html_to_draftjs(html, strict=True)
+    assert json == {
+        "entityMap": {},
+        "blocks": [
+            {
+                "key": "",
+                "text": "My content",
+                "type": expected_type,
+                "depth": 0,
+                "inlineStyleRanges": [],
+                "entityRanges": [],
+                "data": {},
+            }
+        ],
+    }
+
+
+def test_convert_typed_block_list():
+    """Tests converting HTML links into JSON."""
+    html = "<ul><li>a</li><li>b</li></ul>"
+    json = html_to_draftjs(html, strict=True)
+    assert json == {
+        "entityMap": {},
+        "blocks": [
+            {
+                "key": "",
+                "text": "a",
+                "type": "unordered-list-item",
+                "depth": 0,
+                "inlineStyleRanges": [],
+                "entityRanges": [],
+                "data": {},
+            },
+            {
+                "key": "",
+                "text": "b",
+                "type": "unordered-list-item",
+                "depth": 0,
+                "inlineStyleRanges": [],
+                "entityRanges": [],
+                "data": {},
+            },
+        ],
+    }
 
 
 def test_convert_page():

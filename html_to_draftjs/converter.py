@@ -1,5 +1,5 @@
 import warnings
-from typing import Dict, Optional  # noqa: F401
+from typing import Optional
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
@@ -39,7 +39,7 @@ class SoupConverter(object):
         :type blocks: tuple
 
         :param typed_blocks:
-        :type typed_blocks: Dict[str, str]
+        :type typed_blocks: Dict[str, Union[list, str]]
 
         :param entities:
         :type entities: Dict[str, types.ENTITY_TYPE]
@@ -115,7 +115,7 @@ class SoupConverter(object):
         for node in element.contents:
             # If the node is a string, append it to the text
             if isinstance(node, str):
-                block["text"] += node
+                block["text"] += node.strip("\n")
                 continue
 
             tag_name = node.name.lower()
@@ -135,7 +135,7 @@ class SoupConverter(object):
                     continue
 
                 # Build the block
-                self.build_block(node)
+                self.build_block(node, element)
 
                 # Stop there, we don't need to post-process blocks
                 continue
@@ -157,7 +157,7 @@ class SoupConverter(object):
             else:
                 self.handle_inline(node, block, start_pos, length)
 
-    def build_block(self, element):
+    def build_block(self, element, parent: Optional[Tag] = None):
         """
         :param element:
         :type element: Tag
@@ -171,13 +171,26 @@ class SoupConverter(object):
 
         element_name = element.name.lower()
         if element_name in self.typed_blocks_types:
-            block["type"] = self.typed_blocks_types[element_name]
+            block["type"] = self.get_typed_block_type(element, parent)
 
         # Convert the HTML content to DraftJS
-        self._process_element_for_block(block, element, None)
+        self._process_element_for_block(block, element, parent)
 
         # Finalize the block data
         block["key"] = self.key_generator(block)
+
+    def get_typed_block_type(self, element: Tag, parent: Optional[Tag]) -> str:
+        definitions = self.typed_blocks_types[element.name.lower()]
+        if isinstance(definitions, str):
+            return definitions
+
+        if parent is not None:
+            parent_name = parent.name.lower()
+            for spec in definitions:  # type: dict
+                if spec["parent"] == parent_name:
+                    return spec["type"]
+
+        return "unstyled"
 
     def handle_inline(self, node: Tag, block, start_pos, length):
         """

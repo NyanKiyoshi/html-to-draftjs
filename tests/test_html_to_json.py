@@ -1,3 +1,5 @@
+from pprint import pprint
+
 import pytest
 
 from html_to_draftjs import html_to_draftjs
@@ -254,9 +256,15 @@ def test_convert_typed_block(html, expected_type):
     }
 
 
-def test_convert_typed_block_list():
+@pytest.mark.parametrize(
+    "html, expected_type",
+    (
+        ("<ul><li>a</li><li>b</li></ul>", "unordered-list-item"),
+        ("<ol><li>a</li><li>b</li></ol>", "ordered-list-item"),
+    ),
+)
+def test_convert_typed_block_list(html, expected_type):
     """Tests converting HTML links into JSON."""
-    html = "<ul><li>a</li><li>b</li></ul>"
     json = html_to_draftjs(html, strict=True)
     assert json == {
         "entityMap": {},
@@ -264,7 +272,7 @@ def test_convert_typed_block_list():
             {
                 "key": "",
                 "text": "a",
-                "type": "unordered-list-item",
+                "type": expected_type,
                 "depth": 0,
                 "inlineStyleRanges": [],
                 "entityRanges": [],
@@ -273,7 +281,7 @@ def test_convert_typed_block_list():
             {
                 "key": "",
                 "text": "b",
-                "type": "unordered-list-item",
+                "type": expected_type,
                 "depth": 0,
                 "inlineStyleRanges": [],
                 "entityRanges": [],
@@ -295,4 +303,116 @@ def test_convert_page():
         - Ordered lists
         - Unordered lists
     """
-    pass
+
+    html = """
+        <h1>HTML Ipsum Presents</h1>
+
+        <p><strong>Pellentesque habitant morbi tristique</strong> senectus et netus.</p>
+
+        <h2>Header Level 2</h2>
+
+        <ol>
+           <li>Lorem ipsum dolor sit amet, consectetuer adipiscing elit.</li>
+           <li>Aliquam tincidunt mauris eu risus.</li>
+        </ol>
+
+        <blockquote>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+        </blockquote>
+
+        <h3>Header Level 3</h3>
+
+        <ul>
+           <li>Lorem ipsum dolor sit amet, consectetuer adipiscing elit.</li>
+           <li>Aliquam tincidunt mauris eu risus.</li>
+        </ul>
+    """
+
+    json = html_to_draftjs(html, strict=True)
+    pprint(json)
+    assert json == {
+        "entityMap": {},
+        "blocks": [
+            {
+                "key": "",
+                "text": "HTML Ipsum Presents",
+                "type": "header-one",
+                "depth": 0,
+                "inlineStyleRanges": [],
+                "entityRanges": [],
+                "data": {},
+            },
+            {
+                "key": "",
+                "text": "Pellentesque habitant morbi tristique senectus et netus.",
+                "type": "unstyled",
+                "depth": 0,
+                "inlineStyleRanges": [{"offset": 0, "length": 37, "style": "BOLD"}],
+                "entityRanges": [],
+                "data": {},
+            },
+            {
+                "key": "",
+                "text": "Header Level 2",
+                "type": "header-two",
+                "depth": 0,
+                "inlineStyleRanges": [],
+                "entityRanges": [],
+                "data": {},
+            },
+            {
+                "key": "",
+                "text": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.",
+                "type": "ordered-list-item",
+                "depth": 0,
+                "inlineStyleRanges": [],
+                "entityRanges": [],
+                "data": {},
+            },
+            {
+                "key": "",
+                "text": "Aliquam tincidunt mauris eu risus.",
+                "type": "ordered-list-item",
+                "depth": 0,
+                "inlineStyleRanges": [],
+                "entityRanges": [],
+                "data": {},
+            },
+            {
+                "key": "",
+                "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+                "type": "blockquote",
+                "depth": 0,
+                "inlineStyleRanges": [],
+                "entityRanges": [],
+                "data": {},
+            },
+            {
+                "key": "",
+                "text": "Header Level 3",
+                "type": "header-three",
+                "depth": 0,
+                "inlineStyleRanges": [],
+                "entityRanges": [],
+                "data": {},
+            },
+            {
+                "key": "",
+                "text": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.",
+                "type": "unordered-list-item",
+                "depth": 0,
+                "inlineStyleRanges": [],
+                "entityRanges": [],
+                "data": {},
+            },
+            {
+                "key": "",
+                "text": "Aliquam tincidunt mauris eu risus.",
+                "type": "unordered-list-item",
+                "depth": 0,
+                "inlineStyleRanges": [],
+                "entityRanges": [],
+                "data": {},
+            },
+        ],
+    }

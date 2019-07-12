@@ -10,6 +10,8 @@ def str_value_to_dimension(value: Optional[str]):
 
 ENTITY_TYPE = namedtuple("ENTITY_TYPE", ["type", "attributes"])
 
+# FIXME: add support for <br>
+
 # All the supported inline styling tag
 INLINE_TAGS = {
     # Bold style
@@ -23,7 +25,7 @@ INLINE_TAGS = {
 # All the supported block tag
 BLOCK_TAGS = ("p", "div", "ul")
 
-# All the supported block tag having a speacial type/feature
+# All the supported block tag having a special type/feature
 TYPED_TAGS = {
     # Headers
     "h1": "header-one",
@@ -35,8 +37,13 @@ TYPED_TAGS = {
     # Blockquotes
     "blockquote": "blockquote",
     # Lists
-    "li": "unordered-list-item",
-    "ol": "ordered-list-item",
+    "li": [
+        {"parent": "ul", "type": "unordered-list-item"},
+        {"parent": "ol", "type": "ordered-list-item"},
+    ],
+    "p": [{"parent": "blockquote", "type": "blockquote"}],
+    "ol": "",
+    "ul": "",
 }
 
 # All the supported mutable entities

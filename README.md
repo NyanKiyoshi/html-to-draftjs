@@ -33,10 +33,10 @@ pip install html-to-draftjs
 ## Usage
 
 ```python
-from html_to_draftjs import html_to_json
+from html_to_draftjs import html_to_draftjs
 
 
-json = html_to_json("""
+json = html_to_draftjs("""
     <h1>My Page</h1>
 
     <h2>Introduction</h2>
@@ -50,11 +50,16 @@ json = html_to_json("""
 ```
 
 ## API
-### `html_to_json(raw_html_content: str) -> dict`
+### `html_to_draftjs(raw_html_content: str[, features="lxml", strict=False]) -> dict`
 Converts a given HTML input into JSON.
 
-### `html_to_json(bs_object: BeautifulSoup) -> dict`
+- `features` the features for the HTML tree-builder. By default it is set to `lxml` which is fast and powerful.
+- `strict` (boolean), if false, it will only warn on invalid operations. If true, it will raise errors.
+
+### `soup_to_draftjs(bs_object: BeautifulSoup[, strict=False]) -> dict`
 Converts a given beautiful soup into JSON. Useful if you have to select a given part of the HTML content to convert it (e.g. `#content`).
+
+- `strict` (boolean), if false, it will only warn on invalid operations. If true, it will raise errors.
 
 ## Supported Tags and Attributes
 
@@ -72,6 +77,7 @@ Converts a given beautiful soup into JSON. Useful if you have to select a given 
 ### Entities
 - `<img src="url" [alt="alt"] [height="123"] [width="123"]>`
 - `<a href="url">`
+- `<br/>`
 - Doesn't support the `title` and `align` attributes.
 
 ## Development

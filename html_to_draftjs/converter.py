@@ -18,6 +18,7 @@ class SoupConverter(object):
         blocks=types.BLOCK_TAGS,
         typed_blocks=types.TYPED_TAGS,
         entities=types.ENTITIES,
+        text_tags=types.TEXT_TAGS,
         default_block_tag_name=None,
     ):
         """
@@ -41,6 +42,9 @@ class SoupConverter(object):
         :param typed_blocks:
         :type typed_blocks: Dict[str, Union[list, str]]
 
+        :param text_tags:
+        :type text_tags: Dict[str, str]
+
         :param entities:
         :type entities: Dict[str, types.ENTITY_TYPE]
 
@@ -56,12 +60,14 @@ class SoupConverter(object):
         self.blocks_types = blocks
         self.typed_blocks_types = typed_blocks
         self.entities_types = entities
+        self.text_tags = text_tags
         self.default_block_tag_name = default_block_tag_name or self.blocks_types[0]
 
         # Contains all the tags that are inline
         self._all_inline_tags = set()
         self._all_inline_tags.update(self.inlines_types.keys())
         self._all_inline_tags.update(self.entities_types.keys())
+        self._all_inline_tags.update(self.text_tags.keys())
 
         # -- The generated entity map for DraftJS
         # The cursor for types
@@ -154,6 +160,8 @@ class SoupConverter(object):
 
             if tag_name in self.entities_types:
                 self.build_entity(node, block, start_pos, length)
+            elif tag_name in self.text_tags:
+                self.handle_text_tag(node, block)
             else:
                 self.handle_inline(node, block, start_pos, length)
 
@@ -192,10 +200,26 @@ class SoupConverter(object):
 
         return "unstyled"
 
+    def handle_text_tag(self, node: Tag, block):
+        """
+        :param node: The tag node being processed.
+        :type node: Tag
+
+        :param block: The block being processed.
+        :type block: dict
+
+        :return:
+        """
+
+        block["text"] += self.text_tags[node.name.lower()]
+
     def handle_inline(self, node: Tag, block, start_pos, length):
         """
-        :param current_block: The block being processed.
-        :type current_block: dict
+        :param node: The tag node being processed.
+        :type node: Tag
+
+        :param block: The block being processed.
+        :type block: dict
 
         :return:
         """

@@ -10,7 +10,8 @@ def str_value_to_dimension(value: Optional[str]):
 
 ENTITY_TYPE = namedtuple("ENTITY_TYPE", ["type", "attributes"])
 
-# FIXME: add support for <br>
+# All the HTML tags that should be translated to a given string
+TEXT_TAGS = {"br": "\n"}
 
 # All the supported inline styling tag
 INLINE_TAGS = {

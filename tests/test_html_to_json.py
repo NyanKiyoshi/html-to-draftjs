@@ -291,6 +291,25 @@ def test_convert_typed_block_list(html, expected_type):
     }
 
 
+def test_convert_new_line_tags():
+    """Tests converting HTML links into JSON."""
+    json = html_to_draftjs("<br><br/>", strict=True)
+    assert json == {
+        "entityMap": {},
+        "blocks": [
+            {
+                "key": "",
+                "text": "\n\n",
+                "type": "unstyled",
+                "depth": 0,
+                "inlineStyleRanges": [],
+                "entityRanges": [],
+                "data": {},
+            }
+        ],
+    }
+
+
 def test_convert_page():
     """Tests converting a full dummy HTML page into JSON.
 
@@ -317,7 +336,7 @@ def test_convert_page():
         </ol>
 
         <blockquote>
-            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+            <p>Lorem ipsum dolor sit amet,<br/>consectetur adipiscing elit.</p>
         </blockquote>
 
         <h3>Header Level 3</h3>
@@ -380,7 +399,7 @@ def test_convert_page():
             },
             {
                 "key": "",
-                "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+                "text": "Lorem ipsum dolor sit amet,\nconsectetur adipiscing elit.",
                 "type": "blockquote",
                 "depth": 0,
                 "inlineStyleRanges": [],

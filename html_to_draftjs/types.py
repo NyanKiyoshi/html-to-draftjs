@@ -1,7 +1,17 @@
 from collections import namedtuple
+from typing import Optional
+
+
+def str_value_to_dimension(value: Optional[str]):
+    if isinstance(value, str) and value.isnumeric():
+        return value + "px"
+    return value
+
 
 ENTITY_TYPE = namedtuple("ENTITY_TYPE", ["type", "attributes"])
 
+# All the HTML tags that should be translated to a given string
+TEXT_TAGS = {"br": "\n"}
 
 # All the supported inline styling tag
 INLINE_TAGS = {
@@ -14,9 +24,9 @@ INLINE_TAGS = {
 }
 
 # All the supported block tag
-BLOCK_TAGS = ("p", "div")
+BLOCK_TAGS = ("p", "div", "ul")
 
-# All the supported block tag having a speacial type/feature
+# All the supported block tag having a special type/feature
 TYPED_TAGS = {
     # Headers
     "h1": "header-one",
@@ -28,14 +38,27 @@ TYPED_TAGS = {
     # Blockquotes
     "blockquote": "blockquote",
     # Lists
-    "li": "unordered-list-item",
-    "ol": "ordered-list-item",
+    "li": [
+        {"parent": "ul", "type": "unordered-list-item"},
+        {"parent": "ol", "type": "ordered-list-item"},
+    ],
+    "p": [{"parent": "blockquote", "type": "blockquote"}],
+    "ol": "",
+    "ul": "",
 }
 
 # All the supported mutable entities
 ENTITIES = {
     # Links
-    "a": ENTITY_TYPE(type="LINK", attributes={"href"}),
+    "a": ENTITY_TYPE(type="LINK", attributes={"href": {}}),
     # Images
-    "img": ENTITY_TYPE(type="IMAGE", attributes={"src", "alt", "height", "width"}),
+    "img": ENTITY_TYPE(
+        type="IMAGE",
+        attributes={
+            "src": {},
+            "alt": {"default": ""},
+            "height": {"default": "initial", "convert": str_value_to_dimension},
+            "width": {"default": "initial", "convert": str_value_to_dimension},
+        },
+    ),
 }

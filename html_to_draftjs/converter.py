@@ -254,11 +254,12 @@ class SoupConverter(object):
             # if there is a default defined (careful! The default value can be null)
             if attr in node.attrs or "default" in defs:
                 value = node.attrs.get(attr, default)
+                draft_js_attr = defs.get("name", attr)  # the attribute name for DraftJS
 
                 if "convert" in defs:
                     value = defs["convert"](value)
 
-                attributes[attr] = value
+                attributes[draft_js_attr] = value
 
         entity = {
             "type": entity_definitions.type,

@@ -50,7 +50,7 @@ TYPED_TAGS = {
 # All the supported mutable entities
 ENTITIES = {
     # Links
-    "a": ENTITY_TYPE(type="LINK", attributes={"href": {}}),
+    "a": ENTITY_TYPE(type="LINK", attributes={"href": {"name": "url"}}),
     # Images
     "img": ENTITY_TYPE(
         type="IMAGE",

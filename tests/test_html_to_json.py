@@ -214,7 +214,7 @@ def test_convert_link(html):
     json = html_to_draftjs(html, strict=True)
     assert json == {
         "entityMap": {
-            "0": {"type": "LINK", "mutability": "MUTABLE", "data": {"href": "#my-link"}}
+            "0": {"type": "LINK", "mutability": "MUTABLE", "data": {"url": "#my-link"}}
         },
         "blocks": [
             {

@@ -173,6 +173,9 @@ class SoupConverter(object):
         :return:
         """
 
+        if element is None:
+            return
+
         # Create and store an empty block, ready to get populated
         block = self.create_default_block()
         self.append_block(block)

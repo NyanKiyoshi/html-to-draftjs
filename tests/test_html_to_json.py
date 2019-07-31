@@ -1,10 +1,13 @@
-from pprint import pprint
-
 import pytest
 
 from html_to_draftjs import html_to_draftjs
 
-# FIXME: test typed blocks as well
+
+def test_convert_nothing():
+    """Tests converting empty HTML doesn't fail"""
+    html = ""
+    json = html_to_draftjs(html)
+    assert json == {"blocks": [], "entityMap": {}}
 
 
 def test_convert_block():
@@ -348,7 +351,6 @@ def test_convert_page():
     """
 
     json = html_to_draftjs(html, strict=True)
-    pprint(json)
     assert json == {
         "entityMap": {},
         "blocks": [

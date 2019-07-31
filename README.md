@@ -13,8 +13,8 @@
     </a>
   </p>
   <p>
-    <a href='https://github.com/NyanKiyoshi/html-to-draftjs/compare/v1.0.0...master'>
-      <img src='https://img.shields.io/github/commits-since/NyanKiyoshi/html-to-draftjs/v1.0.0.svg' alt='Commits since latest release' />
+    <a href='https://github.com/NyanKiyoshi/html-to-draftjs/compare/v1.0.1...master'>
+      <img src='https://img.shields.io/github/commits-since/NyanKiyoshi/html-to-draftjs/v1.0.1.svg' alt='Commits since latest release' />
     </a>
     <a href='https://pypi.python.org/pypi/html-to-draftjs'>
       <img src='https://img.shields.io/pypi/pyversions/html-to-draftjs.svg' alt='Supported versions' />
